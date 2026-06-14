@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>JobScope — Search jobs across the web</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0D0F14;
+    --surface:   #161920;
+    --card:      #1C2030;
+    --border:    rgba(255,255,255,0.07);
+    --border-hi: rgba(255,255,255,0.14);
+    --accent:    #5B7FFF;
+    --accent-dim:#1e2a55;
+    --accent2:   #38E8C0;
+    --text:      #F0F2F8;
+    --muted:     #7A7F96;
+    --muted2:    #4A4F66;
+    --red:       #FF5B7A;
+    --amber:     #FFBA38;
+    --green:     #38E8A0;
+    --radius:    12px;
+    --radius-sm: 8px;
+    --shadow:    0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* ── Header ── */
+  header {
+    padding: 0 2rem;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: rgba(13,15,20,0.88);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: -0.5px;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .logo span { color: var(--accent); }
+  .header-meta {
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .live-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s ease infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ── Hero search ── */
+  .hero {
+    padding: 3.5rem 2rem 2rem;
+    max-width: 780px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .hero-eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: 4px 12px;
+    border-radius: 99px;
+    margin-bottom: 1.2rem;
+  }
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(28px, 5vw, 46px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -1px;
+    margin-bottom: 0.6rem;
+  }
+  .hero h1 em {
+    font-style: normal;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero p {
+    color: var(--muted);
+    font-size: 15px;
+    margin-bottom: 2rem;
+  }
+
+  /* ── Search bar ── */
+  .search-box {
+    display: flex;
+    gap: 0;
+    background: var(--card);
+    border: 1px solid var(--border-hi);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: border-color 0.2s;
+  }
+  .search-box:focus-within { border-color: var(--accent); }
+  .search-icon {
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .search-icon svg { width: 18px; height: 18px; }
+  #search-input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    padding: 14px 0;
+  }
+  #search-input::placeholder { color: var(--muted2); }
+  #search-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 0 24px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  #search-btn:hover { background: #7090ff; }
+  #search-btn:active { transform: scale(0.98); }
+  #search-btn:disabled { background: var(--muted2); cursor: not-allowed; }
+
+  /* ── API Key banner ── */
+  .api-banner {
+    max-width: 780px;
+    margin: 1rem auto 0;
+    background: rgba(91,127,255,0.08);
+    border: 1px solid rgba(91,127,255,0.25);
+    border-radius: var(--radius-sm);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .api-banner label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .api-banner input {
+    flex: 1;
+    min-width: 200px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border-hi);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    outline: none;
+  }
+  .api-banner input:focus { border-color: var(--accent); }
+  .api-hint { font-size: 11px; color: var(--muted); width: 100%; }
+  .api-hint a { color: var(--accent); text-decoration: none; }
+
+  /* ── Filters ── */
+  .controls {
+    max-width: 1100px;
+    margin: 2rem auto 0;
+    padding: 0 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+  .filter-label { font-size: 12px; color: var(--muted); font-weight: 500; margin-right: 4px; }
+
+  .filter-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 99px;
+    border: 1px solid var(--border-hi);
+    background: var(--card);
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .pill:hover { border-color: var(--accent); color: var(--text); }
+  .pill.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .pill .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .dot-li { background: #0A66C2; }
+  .dot-in { background: #003087; }
+  .dot-gl { background: #0CAF60; }
+  .dot-all { background: var(--accent); }
+
+  .sort-select {
+    margin-left: auto;
+    background: var(--card);
+    border: 1px solid var(--border-hi);
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    color: var(--muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+  }
+  .sort-select:focus { border-color: var(--accent); color: var(--text); }
+
+  /* ── Results area ── */
+  .results-wrap {
+    max-width: 1100px;
+    margin: 1.5rem auto 4rem;
+    padding: 0 2rem;
+  }
+  .results-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+  .results-count { font-size: 13px; color: var(--muted); }
+  .results-count strong { color: var(--text); font-weight: 600; }
+
+  /* ── Job grid ── */
+  #job-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 14px;
+  }
+
+  /* ── Job card ── */
+  .job-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+    animation: fadeUp 0.3s ease both;
+  }
+  .job-card:hover {
+    border-color: var(--border-hi);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-top { display: flex; align-items: flex-start; gap: 12px; }
+  .company-logo {
+    width: 44px; height: 44px;
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    border: 1px solid var(--border-hi);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .company-logo img { width: 100%; height: 100%; object-fit: cover; }
+  .company-logo span { font-size: 20px; }
+
+  .card-meta { flex: 1; min-width: 0; }
+  .job-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.35;
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .company-name {
+    font-size: 13px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .source-badge {
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 3px 8px;
+    border-radius: 99px;
+    text-transform: uppercase;
+  }
+  .badge-linkedin { background: rgba(10,102,194,0.2); color: #5AA9E0; }
+  .badge-indeed   { background: rgba(0,48,135,0.25); color: #7B9FFF; }
+  .badge-glassdoor{ background: rgba(12,175,96,0.2); color: #50D490; }
+  .badge-default  { background: rgba(255,255,255,0.07); color: var(--muted); }
+
+  .card-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .detail-pill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--surface);
+    padding: 4px 10px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+  }
+  .detail-pill svg { width: 12px; height: 12px; flex-shrink: 0; }
+  .salary-pill { color: var(--green); border-color: rgba(56,232,160,0.2); }
+
+  .job-type-pill {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 9px;
+    border-radius: 99px;
+    background: rgba(91,127,255,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(91,127,255,0.2);
+  }
+
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: auto;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .posted-date { font-size: 11px; color: var(--muted2); }
+  .apply-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--accent);
+    color: #fff;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 99px;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .apply-btn:hover { background: #7090ff; transform: scale(1.03); }
+  .apply-btn svg { width: 11px; height: 11px; }
+
+  /* ── States ── */
+  .state-box {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 5rem 2rem;
+    text-align: center;
+    gap: 12px;
+  }
+  .state-icon { font-size: 48px; margin-bottom: 8px; }
+  .state-title { font-size: 18px; font-weight: 600; }
+  .state-sub { font-size: 14px; color: var(--muted); max-width: 360px; }
+
+  /* Skeleton loader */
+  .skeleton-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .sk { background: var(--surface); border-radius: 6px; animation: shimmer 1.4s ease infinite; }
+  .sk-row { display: flex; gap: 12px; align-items: flex-start; }
+  .sk-logo { width: 44px; height: 44px; border-radius: var(--radius-sm); flex-shrink: 0; }
+  .sk-lines { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+  .sk-h { height: 13px; }
+  .sk-wide { width: 80%; }
+  .sk-med  { width: 55%; }
+  .sk-pills { display: flex; gap: 8px; }
+  .sk-pill { height: 24px; width: 80px; border-radius: 99px; }
+  .sk-pill2 { width: 60px; }
+  .sk-foot { display: flex; justify-content: space-between; align-items: center; }
+  .sk-sm { height: 11px; width: 70px; }
+  .sk-btn { height: 28px; width: 80px; border-radius: 99px; }
+
+  @keyframes shimmer {
+    0%   { opacity: 0.5; }
+    50%  { opacity: 0.9; }
+    100% { opacity: 0.5; }
+  }
+
+  /* ── Error banner ── */
+  .error-banner {
+    background: rgba(255,91,122,0.1);
+    border: 1px solid rgba(255,91,122,0.3);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #ff8fa0;
+    margin-bottom: 1rem;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .error-banner svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--muted2); border-radius: 99px; }
+
+  @media (max-width: 600px) {
+    header { padding: 0 1rem; }
+    .hero { padding: 2rem 1rem 1.5rem; }
+    .controls { padding: 0 1rem; }
+    .results-wrap { padding: 0 1rem; }
+    #job-grid { grid-template-columns: 1fr; }
+    #search-btn { padding: 0 16px; font-size: 13px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .job-card, .apply-btn, #search-btn { transition: none; }
+    .job-card:hover { transform: none; }
+    .live-dot { animation: none; }
+    .sk { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <a href="#" class="logo">Job<span>Scope</span></a>
+  <div class="header-meta">
+    <div class="live-dot"></div>
+    Live job data
+  </div>
+</header>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-eyebrow">Powered by JSearch API</div>
+  <h1>Find your next<br><em>engineering role</em></h1>
+  <p>Search across LinkedIn, Indeed, Glassdoor and more — in one place.</p>
+
+  <div class="search-box">
+    <div class="search-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+    </div>
+    <input
+      type="text"
+      id="search-input"
+      placeholder='Try "DevOps Engineer Bangalore" or "React Developer remote"'
+      autocomplete="off"
+      spellcheck="false"
+    />
+    <button id="search-btn" onclick="doSearch()">Search jobs</button>
+  </div>
+
+  <!-- API Key input -->
+  <div class="api-banner" style="margin-top:12px;">
+    <label for="api-key-input">RapidAPI Key</label>
+    <input
+      type="password"
+      id="api-key-input"
+      placeholder="Paste your JSearch RapidAPI key here"
+    />
+    <p class="api-hint">
+      Free plan: 500 req/month. Get yours at
+      <a href="https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch" target="_blank" rel="noopener">rapidapi.com → JSearch</a>
+      — subscribe to the free tier.
+    </p>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="controls">
+  <span class="filter-label">Source</span>
+  <div class="filter-pills" id="filter-pills">
+    <div class="pill active" data-source="all" onclick="setFilter(this)">
+      <span class="dot dot-all"></span> All sites
+    </div>
+    <div class="pill" data-source="linkedin" onclick="setFilter(this)">
+      <span class="dot dot-li"></span> LinkedIn
+    </div>
+    <div class="pill" data-source="indeed" onclick="setFilter(this)">
+      <span class="dot dot-in"></span> Indeed
+    </div>
+    <div class="pill" data-source="glassdoor" onclick="setFilter(this)">
+      <span class="dot dot-gl"></span> Glassdoor
+    </div>
+  </div>
+
+  <select class="sort-select" id="sort-select" onchange="renderJobs()">
+    <option value="date">Sort: Most recent</option>
+    <option value="salary">Sort: Salary</option>
+    <option value="title">Sort: Job title A–Z</option>
+  </select>
+</div>
+
+<!-- Results -->
+<div class="results-wrap">
+  <div class="results-meta" id="results-meta" style="display:none;">
+    <p class="results-count" id="results-count"></p>
+  </div>
+  <div id="error-area"></div>
+  <div id="job-grid">
+    <div class="state-box">
+      <div class="state-icon">🔍</div>
+      <div class="state-title">Search for jobs above</div>
+      <div class="state-sub">Enter a job title, skill, or company name — optionally with a location like "Bangalore" or "remote".</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── State ──
+  let allJobs = [];
+  let activeSource = 'all';
+
+  // ── Filter ──
+  function setFilter(el) {
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    activeSource = el.dataset.source;
+    renderJobs();
+  }
+
+  // ── Search trigger ──
+  document.getElementById('search-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doSearch();
+  });
+
+  // ── Main search ──
+  async function doSearch() {
+    const query = document.getElementById('search-input').value.trim();
+    const apiKey = document.getElementById('api-key-input').value.trim();
+    const btn = document.getElementById('search-btn');
+    const errorArea = document.getElementById('error-area');
+
+    errorArea.innerHTML = '';
+
+    if (!query) {
+      showError('Please enter a job title or keyword to search.');
+      return;
+    }
+    if (!apiKey) {
+      showError('Please enter your RapidAPI key above. Get a free key at rapidapi.com → JSearch.');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Searching…';
+    showSkeletons(6);
+    document.getElementById('results-meta').style.display = 'none';
+
+    try {
+      const url = `https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(query)}&num_pages=3&date_posted=all`;
+
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'X-RapidAPI-Key': apiKey,
+          'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
+        }
+      });
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        const msg = res.status === 403
+          ? 'Invalid API key or quota exceeded. Check your RapidAPI key and free plan limits.'
+          : res.status === 429
+          ? 'Rate limit reached. You\'ve used your free monthly quota. Upgrade your plan on RapidAPI.'
+          : `API error ${res.status}: ${errBody.message || res.statusText}`;
+        showError(msg);
+        allJobs = [];
+        renderJobs();
+        return;
+      }
+
+      const data = await res.json();
+      allJobs = data.data || [];
+      renderJobs();
+
+    } catch (err) {
+      showError('Network error — check your internet connection and try again. ' + err.message);
+      allJobs = [];
+      renderJobs();
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Search jobs';
+    }
+  }
+
+  // ── Filter + sort + render ──
+  function renderJobs() {
+    const sort = document.getElementById('sort-select').value;
+    const metaEl = document.getElementById('results-meta');
+    const countEl = document.getElementById('results-count');
+    const grid = document.getElementById('job-grid');
+
+    // Filter
+    let jobs = allJobs;
+    if (activeSource !== 'all') {
+      jobs = jobs.filter(j => {
+        const pub = (j.job_publisher || '').toLowerCase();
+        if (activeSource === 'linkedin')  return pub.includes('linkedin');
+        if (activeSource === 'indeed')    return pub.includes('indeed');
+        if (activeSource === 'glassdoor') return pub.includes('glassdoor');
+        return true;
+      });
+    }
+
+    // Sort
+    if (sort === 'title') {
+      jobs = [...jobs].sort((a, b) => (a.job_title || '').localeCompare(b.job_title || ''));
+    } else if (sort === 'salary') {
+      jobs = [...jobs].sort((a, b) => {
+        const sa = a.job_max_salary || a.job_min_salary || 0;
+        const sb = b.job_max_salary || b.job_min_salary || 0;
+        return sb - sa;
+      });
+    } else {
+      jobs = [...jobs].sort((a, b) => {
+        return (b.job_posted_at_timestamp || 0) - (a.job_posted_at_timestamp || 0);
+      });
+    }
+
+    if (allJobs.length === 0) {
+      metaEl.style.display = 'none';
+      grid.innerHTML = `<div class="state-box">
+        <div class="state-icon">📭</div>
+        <div class="state-title">No results</div>
+        <div class="state-sub">Try a different keyword, or check your API key is valid.</div>
+      </div>`;
+      return;
+    }
+
+    metaEl.style.display = 'flex';
+    countEl.innerHTML = `Showing <strong>${jobs.length}</strong> of <strong>${allJobs.length}</strong> jobs`;
+
+    if (jobs.length === 0) {
+      grid.innerHTML = `<div class="state-box">
+        <div class="state-icon">🔎</div>
+        <div class="state-title">No jobs from this source</div>
+        <div class="state-sub">Try "All sites" or a different source filter.</div>
+      </div>`;
+      return;
+    }
+
+    grid.innerHTML = jobs.map((job, i) => buildCard(job, i)).join('');
+  }
+
+  // ── Build card HTML ──
+  function buildCard(job, i) {
+    const title    = esc(job.job_title || 'Untitled role');
+    const company  = esc(job.employer_name || 'Unknown company');
+    const location = buildLocation(job);
+    const salary   = buildSalary(job);
+    const jobType  = esc(job.job_employment_type || '');
+    const applyUrl = job.job_apply_link || '#';
+    const logoUrl  = job.employer_logo || '';
+    const logoHtml = logoUrl
+      ? `<img src="${esc(logoUrl)}" alt="${company} logo" onerror="this.parentElement.innerHTML='<span>🏢</span>'" />`
+      : `<span>${getEmoji(company)}</span>`;
+    const publisher = job.job_publisher || '';
+    const badgeClass = getBadgeClass(publisher);
+    const postedDate = formatDate(job.job_posted_at_datetime_utc);
+    const remote = job.job_is_remote ? '<div class="detail-pill">🌐 Remote</div>' : '';
+
+    return `
+    <div class="job-card" style="animation-delay:${i * 40}ms">
+      <div class="card-top">
+        <div class="company-logo">${logoHtml}</div>
+        <div class="card-meta">
+          <div class="job-title" title="${title}">${title}</div>
+          <div class="company-name">${company}</div>
+        </div>
+        <span class="source-badge ${badgeClass}">${publisher.split(' ')[0] || 'Job'}</span>
+      </div>
+
+      <div class="card-details">
+        ${location ? `<div class="detail-pill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          ${esc(location)}
+        </div>` : ''}
+        ${remote}
+        ${salary ? `<div class="detail-pill salary-pill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          ${esc(salary)}
+        </div>` : ''}
+        ${jobType ? `<div class="job-type-pill">${esc(jobType.replace(/_/g,' '))}</div>` : ''}
+      </div>
+
+      <div class="card-footer">
+        <span class="posted-date">${postedDate}</span>
+        <a href="${esc(applyUrl)}" target="_blank" rel="noopener" class="apply-btn">
+          Apply
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+      </div>
+    </div>`;
+  }
+
+  // ── Helpers ──
+  function buildLocation(job) {
+    const parts = [job.job_city, job.job_state, job.job_country].filter(Boolean);
+    return parts.join(', ');
+  }
+
+  function buildSalary(job) {
+    const min = job.job_min_salary;
+    const max = job.job_max_salary;
+    const cur = job.job_salary_currency || 'USD';
+    const per = job.job_salary_period ? '/' + job.job_salary_period.toLowerCase().replace('_',' ') : '';
+    if (min && max) return `${formatMoney(min, cur)} – ${formatMoney(max, cur)}${per}`;
+    if (max) return `Up to ${formatMoney(max, cur)}${per}`;
+    if (min) return `From ${formatMoney(min, cur)}${per}`;
+    return '';
+  }
+
+  function formatMoney(n, currency) {
+    try {
+      return new Intl.NumberFormat('en-IN', {
+        style: 'currency', currency, maximumFractionDigits: 0, notation: 'compact'
+      }).format(n);
+    } catch {
+      return n.toLocaleString();
+    }
+  }
+
+  function formatDate(dt) {
+    if (!dt) return '';
+    try {
+      const d = new Date(dt);
+      const now = new Date();
+      const diff = Math.floor((now - d) / 86400000);
+      if (diff === 0) return 'Posted today';
+      if (diff === 1) return 'Posted yesterday';
+      if (diff < 7)  return `Posted ${diff} days ago`;
+      if (diff < 30) return `Posted ${Math.floor(diff / 7)}w ago`;
+      return 'Posted ' + d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+    } catch { return ''; }
+  }
+
+  function getBadgeClass(publisher) {
+    const p = (publisher || '').toLowerCase();
+    if (p.includes('linkedin'))  return 'badge-linkedin';
+    if (p.includes('indeed'))    return 'badge-indeed';
+    if (p.includes('glassdoor')) return 'badge-glassdoor';
+    return 'badge-default';
+  }
+
+  function getEmoji(name) {
+    const n = (name || '').toLowerCase();
+    if (n.includes('google') || n.includes('microsoft') || n.includes('amazon') || n.includes('apple')) return '🏛️';
+    if (n.includes('startup') || n.includes('tech')) return '🚀';
+    return '🏢';
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&#39;');
+  }
+
+  function showError(msg) {
+    document.getElementById('error-area').innerHTML = `
+      <div class="error-banner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        ${esc(msg)}
+      </div>`;
+  }
+
+  function showSkeletons(n) {
+    const sk = Array.from({length: n}, () => `
+      <div class="skeleton-card">
+        <div class="sk-row">
+          <div class="sk sk-logo"></div>
+          <div class="sk-lines">
+            <div class="sk sk-h sk-wide"></div>
+            <div class="sk sk-h sk-med"></div>
+          </div>
+        </div>
+        <div class="sk-pills">
+          <div class="sk sk-pill"></div>
+          <div class="sk sk-pill sk-pill2"></div>
+        </div>
+        <div class="sk-foot">
+          <div class="sk sk-sm"></div>
+          <div class="sk sk-btn"></div>
+        </div>
+      </div>`).join('');
+    document.getElementById('job-grid').innerHTML = sk;
+  }
+</script>
+</body>
+</html>
